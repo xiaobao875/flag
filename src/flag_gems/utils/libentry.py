@@ -27,6 +27,7 @@ from typing import (
 )
 
 import triton
+import triton.testing
 
 from flag_gems import runtime
 from flag_gems.runtime import torch_device_fn
@@ -66,6 +67,24 @@ if major_version == 2:
     setattr(triton.Config, "all_kwargs", all_kwargs)
 
 FLAGGEMS_DB_URL = os.getenv("FLAGGEMS_DB_URL", None)
+
+
+def _make_autotune_bench(warmup, rep, use_cuda_graph):
+    if use_cuda_graph:
+        from triton.testing import do_bench_cudagraph
+
+        return lambda kernel_call, quantiles: do_bench_cudagraph(
+            kernel_call,
+            rep=rep if rep is not None else 100,
+            quantiles=quantiles,
+        )
+
+    return lambda kernel_call, quantiles: triton.testing.do_bench(
+        kernel_call,
+        warmup=warmup if warmup is not None else 25,
+        rep=rep if rep is not None else 100,
+        quantiles=quantiles,
+    )
 
 
 class Cache(object):
@@ -266,7 +285,7 @@ class LibTuner(triton.runtime.Autotuner):
             self.base_fn = fn
             while not inspect.isfunction(self.base_fn):
                 self.base_fn = self.base_fn.fn
-        else:
+        elif major_version == 3 and minor_version <= 1:
             super().__init__(
                 fn,
                 arg_names,
@@ -280,6 +299,25 @@ class LibTuner(triton.runtime.Autotuner):
                 warmup,
                 rep,
                 use_cuda_graph,
+            )
+        else:
+            autotune_do_bench = do_bench or _make_autotune_bench(
+                warmup, rep, use_cuda_graph
+            )
+            super().__init__(
+                fn,
+                arg_names,
+                configs,
+                key,
+                reset_to_zero,
+                restore_value,
+                pre_hook,
+                post_hook,
+                prune_configs_by,
+                warmup=None,
+                rep=None,
+                use_cuda_graph=False,
+                do_bench=autotune_do_bench,
             )
         self.__name__ = self.base_fn.__name__
         self.keys = key
