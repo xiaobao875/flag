@@ -179,12 +179,10 @@ class LibCache(object):
         self.model: PersistantModel = SQLPersistantModel(self.db_url)
 
     @overload
-    def __getitem__(self, key: str) -> ConfigCache:
-        ...
+    def __getitem__(self, key: str) -> ConfigCache: ...
 
     @overload
-    def __getitem__(self, key: Tuple[Union[int, float, str]]) -> BenchmarkCache:
-        ...
+    def __getitem__(self, key: Tuple[Union[int, float, str]]) -> BenchmarkCache: ...
 
     def __getitem__(
         self, key: Union[str, Tuple[Union[int, float, str], ...]]
@@ -266,7 +264,7 @@ class LibTuner(triton.runtime.Autotuner):
             self.base_fn = fn
             while not inspect.isfunction(self.base_fn):
                 self.base_fn = self.base_fn.fn
-        else:
+        elif major_version == 3 and minor_version <= 1:
             super().__init__(
                 fn,
                 arg_names,
@@ -281,15 +279,52 @@ class LibTuner(triton.runtime.Autotuner):
                 rep,
                 use_cuda_graph,
             )
+        else:
+            bench_warmup = 25 if warmup is None else warmup
+            bench_rep = 100 if rep is None else rep
+
+            if do_bench is None:
+                if use_cuda_graph:
+
+                    def do_bench(kernel_call, quantiles):
+                        return triton.testing.do_bench_cudagraph(
+                            kernel_call, rep=bench_rep, quantiles=quantiles
+                        )
+
+                else:
+
+                    def do_bench(kernel_call, quantiles):
+                        return triton.testing.do_bench(
+                            kernel_call,
+                            warmup=bench_warmup,
+                            rep=bench_rep,
+                            quantiles=quantiles,
+                        )
+
+            super().__init__(
+                fn,
+                arg_names,
+                configs,
+                key,
+                reset_to_zero,
+                restore_value,
+                pre_hook,
+                post_hook,
+                prune_configs_by,
+                None,
+                None,
+                False,
+                do_bench=do_bench,
+            )
         self.__name__ = self.base_fn.__name__
         self.keys = key
         if isinstance(strategy, str):
             strategy = LibTuner.get_strategy(strategy)
         if not isinstance(strategy, (list, tuple)):
             strategy = [strategy] * len(self.keys)
-        assert len(strategy) == len(
-            self.keys
-        ), f"the length of strategy {len(strategy)} must match the length of keys {len(self.keys)}"
+        assert len(strategy) == len(self.keys), (
+            f"the length of strategy {len(strategy)} must match the length of keys {len(self.keys)}"
+        )
         strategy: List[Callable[[Any], Any]] = [
             LibTuner.get_strategy(s) if isinstance(s, str) else s for s in strategy
         ]
@@ -584,9 +619,9 @@ def libtuner(
 
     if isinstance(policy, str):
         policy = LibTuner.get(policy)
-    assert issubclass(
-        policy, LibTuner
-    ), f"the class of {policy.__name__} is {policy.__class__.__name__}, not a subclass of {LibTuner.__name__}"
+    assert issubclass(policy, LibTuner), (
+        f"the class of {policy.__name__} is {policy.__class__.__name__}, not a subclass of {LibTuner.__name__}"
+    )
 
     def decorator(fn):
         return policy(
