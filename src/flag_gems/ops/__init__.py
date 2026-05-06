@@ -9,9 +9,9 @@ from flag_gems.ops.absolute import absolute
 from flag_gems.ops.acos import acos
 from flag_gems.ops.act_quant import act_quant_triton
 from flag_gems.ops.add import add, add_
-from flag_gems.ops.addcdiv import addcdiv
-from flag_gems.ops.addcmul import addcmul
-from flag_gems.ops.addmm import addmm, addmm_out
+from flag_gems.ops.addcdiv import addcdiv, addcdiv_out
+from flag_gems.ops.addcmul import addcmul, addcmul_out
+from flag_gems.ops.addmm import addmm, addmm_dtype, addmm_dtype_out, addmm_out
 from flag_gems.ops.addmv import addmv, addmv_out
 from flag_gems.ops.addr import addr
 from flag_gems.ops.alias_copy import alias_copy, alias_copy_out
@@ -26,6 +26,7 @@ from flag_gems.ops.arcsinh_ import arcsinh_
 from flag_gems.ops.arctanh_ import arctanh_
 from flag_gems.ops.argmax import argmax
 from flag_gems.ops.argmin import argmin
+from flag_gems.ops.asinh import asinh, asinh_out
 from flag_gems.ops.asinh_ import asinh_
 from flag_gems.ops.assert_async import _assert_async
 from flag_gems.ops.atan import atan, atan_
@@ -40,7 +41,8 @@ from flag_gems.ops.attention import (
     scaled_dot_product_attention_forward,
 )
 from flag_gems.ops.avg_pool2d import avg_pool2d, avg_pool2d_backward
-from flag_gems.ops.baddbmm import baddbmm
+from flag_gems.ops.avg_pool3d import avg_pool3d, avg_pool3d_backward
+from flag_gems.ops.baddbmm import baddbmm, baddbmm_out
 from flag_gems.ops.batch_norm import batch_norm, batch_norm_backward
 from flag_gems.ops.bernoulli_ import bernoulli_
 from flag_gems.ops.bitwise_and import (
@@ -61,7 +63,7 @@ from flag_gems.ops.bitwise_or import (
 )
 from flag_gems.ops.bitwise_right_shift import bitwise_right_shift
 from flag_gems.ops.bmm import bmm, bmm_out
-from flag_gems.ops.cat import cat
+from flag_gems.ops.cat import cat, cat_out
 from flag_gems.ops.ceil import ceil, ceil_, ceil_out
 from flag_gems.ops.celu import celu, celu_
 from flag_gems.ops.clamp import (
@@ -130,6 +132,7 @@ from flag_gems.ops.fp8_matmul import fp8_matmul
 from flag_gems.ops.full import full
 from flag_gems.ops.full_like import full_like
 from flag_gems.ops.gather import gather, gather_backward
+from flag_gems.ops.gcd import gcd, gcd_out
 from flag_gems.ops.ge import ge, ge_scalar
 from flag_gems.ops.gelu import gelu, gelu_, gelu_backward
 from flag_gems.ops.get_paged_mqa_logits_metadata import get_paged_mqa_logits_metadata
@@ -141,6 +144,7 @@ from flag_gems.ops.greater import (
     greater_scalar,
     greater_scalar_out,
 )
+from flag_gems.ops.grid_sample import grid_sample
 from flag_gems.ops.group_gemm import group_mm
 from flag_gems.ops.groupnorm import group_norm, group_norm_backward
 from flag_gems.ops.gt import gt, gt_scalar
@@ -164,6 +168,7 @@ from flag_gems.ops.isneginf import isneginf, isneginf_out
 from flag_gems.ops.kron import kron
 from flag_gems.ops.layernorm import layer_norm, layer_norm_backward
 from flag_gems.ops.le import le, le_scalar
+from flag_gems.ops.leaky_relu import leaky_relu, leaky_relu_, leaky_relu_out
 from flag_gems.ops.lerp import lerp_scalar, lerp_scalar_, lerp_tensor, lerp_tensor_
 from flag_gems.ops.lift_fresh_copy import lift_fresh_copy, lift_fresh_copy_out
 from flag_gems.ops.linspace import linspace
@@ -171,7 +176,12 @@ from flag_gems.ops.log import log
 from flag_gems.ops.log1p_ import log1p_
 from flag_gems.ops.log10 import log10, log10_, log10_out
 from flag_gems.ops.log_sigmoid import log_sigmoid
-from flag_gems.ops.log_softmax import log_softmax, log_softmax_backward
+from flag_gems.ops.log_softmax import (
+    log_softmax,
+    log_softmax_backward,
+    log_softmax_backward_out,
+    log_softmax_out,
+)
 from flag_gems.ops.logaddexp import logaddexp, logaddexp_out
 from flag_gems.ops.logical_and import logical_and, logical_and_
 from flag_gems.ops.logical_not import logical_not
@@ -189,6 +199,10 @@ from flag_gems.ops.max import max, max_dim
 from flag_gems.ops.max_pool2d_with_indices import (
     max_pool2d_backward,
     max_pool2d_with_indices,
+)
+from flag_gems.ops.max_pool3d_with_indices import (
+    max_pool3d_backward,
+    max_pool3d_with_indices,
 )
 from flag_gems.ops.maximum import maximum
 from flag_gems.ops.mean import mean, mean_dim
@@ -225,6 +239,7 @@ from flag_gems.ops.per_token_group_quant_fp8 import (
     SUPPORTED_FP8_DTYPE,
     per_token_group_quant_fp8,
 )
+from flag_gems.ops.pixel_shuffle import pixel_shuffle
 from flag_gems.ops.pixel_unshuffle import pixel_unshuffle, pixel_unshuffle_out
 from flag_gems.ops.polar import polar
 from flag_gems.ops.pow import (
@@ -278,7 +293,12 @@ from flag_gems.ops.sinh_ import sinh_
 from flag_gems.ops.slice_backward import slice_backward
 from flag_gems.ops.slice_scatter import slice_scatter
 from flag_gems.ops.soft_margin_loss import soft_margin_loss, soft_margin_loss_out
-from flag_gems.ops.softmax import softmax, softmax_backward
+from flag_gems.ops.softmax import (
+    softmax,
+    softmax_backward,
+    softmax_backward_out,
+    softmax_out,
+)
 from flag_gems.ops.softplus import softplus
 from flag_gems.ops.softshrink import softshrink, softshrink_out
 from flag_gems.ops.sort import sort, sort_stable
@@ -350,8 +370,12 @@ __all__ = [
     "add",
     "add_",
     "addcdiv",
+    "addcdiv_out",
     "addcmul",
+    "addcmul_out",
     "addmm",
+    "addmm_dtype",
+    "addmm_dtype_out",
     "addmm_out",
     "addmv",
     "addmv_out",
@@ -376,14 +400,19 @@ __all__ = [
     "arcsinh_",
     "argmax",
     "argmin",
+    "asinh",
     "asinh_",
+    "asinh_out",
     "atan",
     "atan_",
     "atan2",
     "atan2_out",
     "avg_pool2d",
     "avg_pool2d_backward",
+    "avg_pool3d",
+    "avg_pool3d_backward",
     "baddbmm",
+    "baddbmm_out",
     "batch_norm",
     "batch_norm_backward",
     "bernoulli_",
@@ -404,6 +433,7 @@ __all__ = [
     "bmm",
     "bmm_out",
     "cat",
+    "cat_out",
     "ceil",
     "ceil_",
     "ceil_out",
@@ -487,6 +517,8 @@ __all__ = [
     "full_like",
     "gather",
     "gather_backward",
+    "gcd",
+    "gcd_out",
     "ge",
     "ge_scalar",
     "gelu",
@@ -496,6 +528,7 @@ __all__ = [
     "get_scheduler_metadata",
     "glu",
     "glu_backward",
+    "grid_sample",
     "greater",
     "greater_out",
     "greater_scalar",
@@ -531,6 +564,9 @@ __all__ = [
     "kron",
     "layer_norm",
     "layer_norm_backward",
+    "leaky_relu",
+    "leaky_relu_",
+    "leaky_relu_out",
     "le",
     "le_scalar",
     "lerp_scalar",
@@ -547,6 +583,8 @@ __all__ = [
     "log_sigmoid",
     "log_softmax",
     "log_softmax_backward",
+    "log_softmax_backward_out",
+    "log_softmax_out",
     "log1p_",
     "logaddexp",
     "logaddexp_out",
@@ -572,6 +610,8 @@ __all__ = [
     "max_dim",
     "max_pool2d_with_indices",
     "max_pool2d_backward",
+    "max_pool3d_with_indices",
+    "max_pool3d_backward",
     "maximum",
     "mean",
     "mean_dim",
@@ -608,6 +648,7 @@ __all__ = [
     "one_hot",
     "pad",
     "per_token_group_quant_fp8",
+    "pixel_shuffle",
     "pixel_unshuffle",
     "pixel_unshuffle_out",
     "polar",
@@ -685,6 +726,8 @@ __all__ = [
     "soft_margin_loss_out",
     "softmax",
     "softmax_backward",
+    "softmax_backward_out",
+    "softmax_out",
     "softplus",
     "softshrink",
     "softshrink_out",

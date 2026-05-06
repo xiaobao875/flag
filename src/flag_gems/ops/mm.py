@@ -49,6 +49,7 @@ def mm_kernel_general(
     BLOCK_N: tl.constexpr,
     BLOCK_K: tl.constexpr,
     GROUP_M: tl.constexpr,
+    IS_FP64: tl.constexpr = False,
 ):
     # matrix multiplication
     pid = tle.program_id(0)
@@ -69,7 +70,10 @@ def mm_kernel_general(
     rn = rn.to(tl.int64)
     prev_multiple = prev_multiple_of(K, BLOCK_K)
 
-    acc = tl.zeros((BLOCK_M, BLOCK_N), dtype=tl.float32)
+    if IS_FP64:
+        acc = tl.zeros((BLOCK_M, BLOCK_N), dtype=tl.float64)
+    else:
+        acc = tl.zeros((BLOCK_M, BLOCK_N), dtype=tl.float32)
     for start_k in range(0, prev_multiple, BLOCK_K):
         rk = (start_k + tl.arange(0, BLOCK_K)).to(tl.int64)
         a = tl.load(A + (ram[:, None] * stride_am + rk[None, :] * stride_ak))
@@ -77,7 +81,10 @@ def mm_kernel_general(
         if a.dtype != b.dtype:
             a = a.to(C.dtype.element_ty)
             b = b.to(C.dtype.element_ty)
-        acc += tl.dot(a, b, out_dtype=tl.float32, allow_tf32=False)
+        if IS_FP64:
+            acc += tl.dot(a, b, allow_tf32=False)
+        else:
+            acc += tl.dot(a, b, out_dtype=tl.float32, allow_tf32=False)
 
     # loop peeling
     rk = (prev_multiple + tl.arange(0, BLOCK_K)).to(tl.int64)
@@ -95,7 +102,10 @@ def mm_kernel_general(
     if a.dtype != b.dtype:
         a = a.to(C.dtype.element_ty)
         b = b.to(C.dtype.element_ty)
-    acc += tl.dot(a, b, out_dtype=tl.float32, allow_tf32=False)
+    if IS_FP64:
+        acc += tl.dot(a, b, allow_tf32=False)
+    else:
+        acc += tl.dot(a, b, out_dtype=tl.float32, allow_tf32=False)
 
     acc = acc.to(C.dtype.element_ty)
     # rematerialize rm and rn to save registers
@@ -107,7 +117,7 @@ def mm_kernel_general(
     tl.store(C, acc, mask=mask)
 
 
-_ordered_datatypes = [torch.float16, torch.bfloat16, torch.float32]
+_ordered_datatypes = [torch.float16, torch.bfloat16, torch.float32, torch.float64]
 
 
 def get_higher_dtype(a, b):
@@ -125,15 +135,6 @@ def get_higher_dtype(a, b):
 
 
 def general_mm(a, b, c, M, N, K):
-    logger.debug(
-        "GEMS MM, [mm scenario]: general, [shape info]: [-, %s, %s, %s](batch, M, N, K), "
-        "[A column-major]: %s, [B column-major]: %s",
-        M,
-        N,
-        K,
-        a.stride(0) == 1,
-        b.stride(0) == 1,
-    )
     grid = lambda META: (
         triton.cdiv(M, META["BLOCK_M"]) * triton.cdiv(N, META["BLOCK_N"]),
     )
@@ -152,6 +153,7 @@ def general_mm(a, b, c, M, N, K):
             c.stride(0),
             c.stride(1),
             GROUP_M=8,
+            IS_FP64=a.dtype == torch.float64,
         )
     return c
 
@@ -284,6 +286,8 @@ def streamk_scenario(a, b, M, N, K):
 
 
 def mm(a, b):
+    logger.debug("GEMS MM")
+
     device = a.device
     if is_syrk_transpose_pair(a, b):
         M, K = a.shape
@@ -310,6 +314,8 @@ def mm(a, b):
 
 
 def mm_out(a, b, *, out):
+    logger.debug("GEMS MM_OUT")
+
     if is_syrk_transpose_pair(a, b):
         M, K = a.shape
         return syrk_mm(a, out, M, K)
