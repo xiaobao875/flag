@@ -168,6 +168,7 @@ _FULL_CONFIG = (
     ("copysign", copysign),
     ("copysign.out", copysign_out),
     ("count_nonzero", count_nonzero),
+    ("ctc_loss", ctc_loss),
     ("cummax", cummax),
     ("cummin", cummin),
     ("cumsum", cumsum),
