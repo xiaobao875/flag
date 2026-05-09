@@ -171,6 +171,7 @@ _FULL_CONFIG = (
     ("cumsum", cumsum),
     ("cumsum.out", cumsum_out),
     ("diag", diag),
+    ("diff", diff),
     ("diag_embed", diag_embed),
     ("diagonal_backward", diagonal_backward),
     ("digamma_", digamma_),
