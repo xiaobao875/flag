@@ -266,7 +266,7 @@ class LibTuner(triton.runtime.Autotuner):
             self.base_fn = fn
             while not inspect.isfunction(self.base_fn):
                 self.base_fn = self.base_fn.fn
-        else:
+        elif major_version == 3 and minor_version <= 1:
             super().__init__(
                 fn,
                 arg_names,
@@ -280,6 +280,43 @@ class LibTuner(triton.runtime.Autotuner):
                 warmup,
                 rep,
                 use_cuda_graph,
+            )
+        else:
+            bench_warmup = 25 if warmup is None else warmup
+            bench_rep = 100 if rep is None else rep
+
+            if do_bench is None:
+                if use_cuda_graph:
+
+                    def do_bench(kernel_call, quantiles):
+                        return triton.testing.do_bench_cudagraph(
+                            kernel_call, rep=bench_rep, quantiles=quantiles
+                        )
+
+                else:
+
+                    def do_bench(kernel_call, quantiles):
+                        return triton.testing.do_bench(
+                            kernel_call,
+                            warmup=bench_warmup,
+                            rep=bench_rep,
+                            quantiles=quantiles,
+                        )
+
+            super().__init__(
+                fn,
+                arg_names,
+                configs,
+                key,
+                reset_to_zero,
+                restore_value,
+                pre_hook,
+                post_hook,
+                prune_configs_by,
+                None,
+                None,
+                False,
+                do_bench=do_bench,
             )
         self.__name__ = self.base_fn.__name__
         self.keys = key
