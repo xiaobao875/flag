@@ -13,7 +13,10 @@ from . import accuracy_utils as utils
     utils.ALL_FLOAT_DTYPES + utils.ALL_INT_DTYPES + utils.COMPLEX_DTYPES,
 )
 def test_to_dtype(shape, dtype):
-    if flag_gems.vendor_name == "tsingmicro" and dtype in utils.COMPLEX_DTYPES:
+    if (
+        flag_gems.vendor_name in ("tsingmicro", "ascend")
+        and dtype in utils.COMPLEX_DTYPES
+    ):
         pytest.skip("#2855: Skiping complex to_copy test on tsingmicro platform")
     x = torch.randn(shape, dtype=torch.float32, device=flag_gems.device)
     ref_x = utils.to_reference(x)
@@ -27,7 +30,10 @@ def test_to_dtype(shape, dtype):
 @pytest.mark.parametrize("shape", utils.POINTWISE_SHAPES)
 @pytest.mark.parametrize("target_dtype", utils.ALL_FLOAT_DTYPES + utils.COMPLEX_DTYPES)
 def test_to_copy_dtype_cast(shape, target_dtype):
-    if flag_gems.vendor_name == "tsingmicro" and target_dtype in utils.COMPLEX_DTYPES:
+    if (
+        flag_gems.vendor_name in ("tsingmicro", "ascend")
+        and target_dtype in utils.COMPLEX_DTYPES
+    ):
         pytest.skip("#2855: Skiping complex to_copy test on tsingmicro platform")
     src_dtype = torch.float32 if target_dtype != torch.float32 else torch.float16
     x = torch.randn(shape, dtype=src_dtype, device=flag_gems.device)

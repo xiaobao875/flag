@@ -119,6 +119,9 @@ def test_sub_scalar_scalar(dtype):
 @pytest.mark.sub
 @pytest.mark.parametrize("shape", utils.POINTWISE_SHAPES)
 @pytest.mark.parametrize("complex_dtype", utils.COMPLEX_DTYPES)
+@pytest.mark.skipif(
+    flag_gems.vendor_name == "ascend", reason="Ascend does not support complex dtype"
+)
 def test_sub_complex_complex(shape, complex_dtype):
     inp1 = torch.randn(shape, dtype=complex_dtype, device=flag_gems.device)
     inp2 = torch.randn(shape, dtype=complex_dtype, device=flag_gems.device)
@@ -136,6 +139,9 @@ def test_sub_complex_complex(shape, complex_dtype):
 @pytest.mark.sub
 @pytest.mark.parametrize("shape", utils.POINTWISE_SHAPES)
 @pytest.mark.parametrize("complex_dtype", utils.COMPLEX_DTYPES)
+@pytest.mark.skipif(
+    flag_gems.vendor_name == "ascend", reason="Ascend does not support complex dtype"
+)
 def test_sub_complex_float_tensor(shape, complex_dtype):
     inp1 = torch.randn(shape, dtype=complex_dtype, device=flag_gems.device)
 
@@ -160,6 +166,9 @@ def test_sub_complex_float_tensor(shape, complex_dtype):
 @pytest.mark.sub
 @pytest.mark.parametrize("shape", utils.POINTWISE_SHAPES)
 @pytest.mark.parametrize("complex_dtype", utils.COMPLEX_DTYPES)
+@pytest.mark.skipif(
+    flag_gems.vendor_name == "ascend", reason="Ascend does not support complex dtype"
+)
 def test_sub_complex_int_tensor(shape, complex_dtype):
     inp1 = torch.randn(shape, dtype=complex_dtype, device=flag_gems.device)
     inp2 = torch.randint(10, 20, shape, device=flag_gems.device)
@@ -177,6 +186,9 @@ def test_sub_complex_int_tensor(shape, complex_dtype):
 @pytest.mark.sub
 @pytest.mark.parametrize("shape", utils.POINTWISE_SHAPES)
 @pytest.mark.parametrize("complex_dtype", utils.COMPLEX_DTYPES)
+@pytest.mark.skipif(
+    flag_gems.vendor_name == "ascend", reason="Ascend does not support complex dtype"
+)
 def test_sub_complex_int_scalar(shape, complex_dtype):
     inp1 = torch.randn(shape, dtype=complex_dtype, device=flag_gems.device)
     inp2 = torch.randint(10, 20, shape, device=flag_gems.device)

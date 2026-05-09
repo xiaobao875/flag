@@ -951,6 +951,9 @@ COMPLEX_DTYPES = [torch.complex64, torch.complex128]
 
 
 @pytest.mark.parametrize("dtype", COMPLEX_DTYPES)
+@pytest.mark.skipif(
+    flag_gems.vendor_name == "ascend", reason="Ascend does not support complex dtype"
+)
 def test_complex_elementwise_tensor_tensor(dtype):
     @pointwise_dynamic(
         is_tensor=[True, True, False], promotion_methods=[(0, 1, "DEFAULT")]
@@ -972,6 +975,9 @@ def test_complex_elementwise_tensor_tensor(dtype):
 
 
 @pytest.mark.parametrize("dtype", COMPLEX_DTYPES)
+@pytest.mark.skipif(
+    flag_gems.vendor_name == "ascend", reason="Ascend does not support complex dtype"
+)
 def test_complex_elementwise_tensor_scalar(dtype):
     @pointwise_dynamic(
         is_tensor=[True, True, False], promotion_methods=[(0, 1, "DEFAULT")]
@@ -1003,6 +1009,9 @@ def test_complex_elementwise_tensor_scalar(dtype):
 
 
 @pytest.mark.parametrize("dtype", COMPLEX_DTYPES)
+@pytest.mark.skipif(
+    flag_gems.vendor_name == "ascend", reason="Ascend does not support complex dtype"
+)
 def test_complex_elementwise_broadcast(dtype):
     @pointwise_dynamic(
         is_tensor=[True, True, False], promotion_methods=[(0, 1, "DEFAULT")]
@@ -1021,6 +1030,9 @@ def test_complex_elementwise_broadcast(dtype):
 
 
 @pytest.mark.parametrize("dtype", COMPLEX_DTYPES)
+@pytest.mark.skipif(
+    flag_gems.vendor_name == "ascend", reason="Ascend does not support complex dtype"
+)
 def test_complex_elementwise_mixed_real_complex(dtype):
     @pointwise_dynamic(
         is_tensor=[True, True, False], promotion_methods=[(0, 1, "DEFAULT")]
@@ -1041,6 +1053,9 @@ def test_complex_elementwise_mixed_real_complex(dtype):
 
 
 @pytest.mark.parametrize("dtype", COMPLEX_DTYPES)
+@pytest.mark.skipif(
+    flag_gems.vendor_name == "ascend", reason="Ascend does not support complex dtype"
+)
 def test_complex_cross_tensor_tensor(dtype):
     @pointwise_dynamic(
         is_tensor=[True, True, True, True],
@@ -1070,6 +1085,9 @@ def test_complex_cross_tensor_tensor(dtype):
 
 
 @pytest.mark.parametrize("dtype", COMPLEX_DTYPES)
+@pytest.mark.skipif(
+    flag_gems.vendor_name == "ascend", reason="Ascend does not support complex dtype"
+)
 def test_complex_cross_tensor_scalar(dtype):
     @pointwise_dynamic(
         is_tensor=[True, True, True, True],
@@ -1107,6 +1125,9 @@ def test_complex_cross_tensor_scalar(dtype):
 
 
 @pytest.mark.parametrize("dtype", COMPLEX_DTYPES)
+@pytest.mark.skipif(
+    flag_gems.vendor_name == "ascend", reason="Ascend does not support complex dtype"
+)
 def test_complex_cross_broadcast(dtype):
     @pointwise_dynamic(
         is_tensor=[True, True, True, True],
@@ -1133,6 +1154,9 @@ def test_complex_cross_broadcast(dtype):
 
 
 @pytest.mark.parametrize("dtype", COMPLEX_DTYPES)
+@pytest.mark.skipif(
+    flag_gems.vendor_name == "ascend", reason="Ascend does not support complex dtype"
+)
 def test_complex_real_inputs_bypass(dtype):
     """When all inputs are real, complex-registered kernel should still work."""
 

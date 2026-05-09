@@ -32,6 +32,9 @@ def test_add(shape, alpha, dtype):
 @pytest.mark.parametrize(
     "other_type", ["complex", "float_tensor", "int_tensor", "int_scalar"]
 )
+@pytest.mark.skipif(
+    flag_gems.vendor_name == "ascend", reason="Ascend does not support complex dtype"
+)
 def test_add_complex(shape, complex_dtype, other_type):
     inp1 = torch.randn(shape, dtype=complex_dtype, device=flag_gems.device)
 

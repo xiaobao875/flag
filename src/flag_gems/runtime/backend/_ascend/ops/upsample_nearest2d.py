@@ -1,15 +1,14 @@
-import logging
+# 需要使能环境变量 TRITON_ALL_BLOCKS_PARALLEL=1
 from typing import Optional, Tuple
 
 import torch
 import triton
 import triton.language as tl
 
-from flag_gems import runtime
 from flag_gems.runtime import device, torch_device_fn
+from flag_gems.runtime.backend._ascend import heuristics_config_utils as _hcu
 from flag_gems.utils import triton_lang_extension as tle
 
-logger = logging.getLogger(f'flag_gems.runtime._ascend.ops.{__name__.split(".")[-1]}')
 device = device.name
 
 
@@ -24,7 +23,7 @@ device = device.name
     ],
     key=["N", "C", "OH", "OW"],
 )
-@triton.heuristics(runtime.get_heuristic_config("upsample_nearest2d"))
+@triton.heuristics(_hcu.HEURISTICS_CONFIGS["upsample_nearest2d"])
 @triton.jit
 def upsample_nearest2d_kernel(
     ptr_o,
@@ -40,6 +39,7 @@ def upsample_nearest2d_kernel(
     BLOCK_SIZE: tl.constexpr,
     SAME_H: tl.constexpr,
     SAME_W: tl.constexpr,
+    USE_INT32_IDX: tl.constexpr = True,
 ):
     pid = tle.program_id(axis=0)
     idx = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
@@ -68,7 +68,7 @@ def upsample_nearest2d(
     scales_h: Optional[float] = None,
     scales_w: Optional[float] = None,
 ) -> torch.Tensor:
-    logger.debug("GEMS_ASCEND UPSAMPLE NEAREST2D")
+    print("GEMS_ASCEND UPSAMPLE NEAREST2D")
     assert input.device.type == device
     assert input.ndim == 4, "The ndim of input must be 4"
     assert len(output_size) == 2, "The len of output_size must be 2"
