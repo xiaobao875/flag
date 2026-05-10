@@ -1,6 +1,12 @@
 from flag_gems.ops._functional_sym_constrain_range_for_size import (
     _functional_sym_constrain_range_for_size,
 )
+from .log10 import log10
+from .cosh import cosh
+from .asinh import asinh
+from .leaky_relu import leaky_relu
+from .tril import tril_custom
+from .smooth_l1_loss import smooth_l1_loss
 from flag_gems.ops._is_all_true import _is_all_true
 from flag_gems.ops._safe_softmax import _safe_softmax
 from flag_gems.ops._upsample_nearest_exact1d import _upsample_nearest_exact1d
