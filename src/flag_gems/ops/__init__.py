@@ -9,9 +9,9 @@ from flag_gems.ops.absolute import absolute
 from flag_gems.ops.acos import acos
 from flag_gems.ops.act_quant import act_quant_triton
 from flag_gems.ops.add import add, add_
-from flag_gems.ops.addcdiv import addcdiv
-from flag_gems.ops.addcmul import addcmul
-from flag_gems.ops.addmm import addmm, addmm_out
+from flag_gems.ops.addcdiv import addcdiv, addcdiv_out
+from flag_gems.ops.addcmul import addcmul, addcmul_out
+from flag_gems.ops.addmm import addmm, addmm_dtype, addmm_dtype_out, addmm_out
 from flag_gems.ops.addmv import addmv, addmv_out
 from flag_gems.ops.addr import addr
 from flag_gems.ops.alias_copy import alias_copy, alias_copy_out
@@ -41,9 +41,11 @@ from flag_gems.ops.attention import (
     scaled_dot_product_attention_forward,
 )
 from flag_gems.ops.avg_pool2d import avg_pool2d, avg_pool2d_backward
-from flag_gems.ops.baddbmm import baddbmm
+from flag_gems.ops.avg_pool3d import avg_pool3d, avg_pool3d_backward
+from flag_gems.ops.baddbmm import baddbmm, baddbmm_out
 from flag_gems.ops.batch_norm import batch_norm, batch_norm_backward
 from flag_gems.ops.bernoulli_ import bernoulli_
+from flag_gems.ops.bincount import bincount
 from flag_gems.ops.bitwise_and import (
     bitwise_and_scalar,
     bitwise_and_scalar_,
@@ -62,7 +64,7 @@ from flag_gems.ops.bitwise_or import (
 )
 from flag_gems.ops.bitwise_right_shift import bitwise_right_shift
 from flag_gems.ops.bmm import bmm, bmm_out
-from flag_gems.ops.cat import cat
+from flag_gems.ops.cat import cat, cat_out
 from flag_gems.ops.ceil import ceil, ceil_, ceil_out
 from flag_gems.ops.celu import celu, celu_
 from flag_gems.ops.clamp import (
@@ -74,6 +76,7 @@ from flag_gems.ops.clamp import (
     clamp_tensor_,
 )
 from flag_gems.ops.clip import clip, clip_
+from flag_gems.ops.concatenate import concatenate
 from flag_gems.ops.conj_physical import conj_physical
 from flag_gems.ops.contiguous import contiguous
 from flag_gems.ops.conv1d import conv1d
@@ -106,6 +109,7 @@ from flag_gems.ops.div import (
 )
 from flag_gems.ops.dot import dot
 from flag_gems.ops.dropout import dropout, dropout_backward
+from flag_gems.ops.einsum import einsum
 from flag_gems.ops.elu import elu, elu_, elu_backward
 from flag_gems.ops.embedding import embedding, embedding_backward
 from flag_gems.ops.embedding_dense_backward import embedding_dense_backward
@@ -117,6 +121,7 @@ from flag_gems.ops.expm1 import expm1, expm1_, expm1_out
 from flag_gems.ops.exponential_ import exponential_
 from flag_gems.ops.eye import eye
 from flag_gems.ops.eye_m import eye_m
+from flag_gems.ops.feature_dropout import feature_dropout, feature_dropout_
 from flag_gems.ops.fill import (
     fill_scalar,
     fill_scalar_,
@@ -144,6 +149,7 @@ from flag_gems.ops.greater import (
     greater_scalar,
     greater_scalar_out,
 )
+from flag_gems.ops.grid_sample import grid_sample
 from flag_gems.ops.group_gemm import group_mm
 from flag_gems.ops.groupnorm import group_norm, group_norm_backward
 from flag_gems.ops.gt import gt, gt_scalar
@@ -175,7 +181,12 @@ from flag_gems.ops.log import log
 from flag_gems.ops.log1p_ import log1p_
 from flag_gems.ops.log10 import log10, log10_, log10_out
 from flag_gems.ops.log_sigmoid import log_sigmoid
-from flag_gems.ops.log_softmax import log_softmax, log_softmax_backward
+from flag_gems.ops.log_softmax import (
+    log_softmax,
+    log_softmax_backward,
+    log_softmax_backward_out,
+    log_softmax_out,
+)
 from flag_gems.ops.logaddexp import logaddexp, logaddexp_out
 from flag_gems.ops.logical_and import logical_and, logical_and_
 from flag_gems.ops.logical_not import logical_not
@@ -271,9 +282,11 @@ from flag_gems.ops.roll import roll
 from flag_gems.ops.round import round, round_, round_out
 from flag_gems.ops.rrelu_with_noise_backward import rrelu_with_noise_backward
 from flag_gems.ops.rsqrt import rsqrt, rsqrt_
+from flag_gems.ops.rsub import rsub_scalar, rsub_tensor
 from flag_gems.ops.scaled_softmax import scaled_softmax_backward, scaled_softmax_forward
 from flag_gems.ops.scatter import scatter, scatter_
 from flag_gems.ops.scatter_add_ import scatter_add_
+from flag_gems.ops.scatter_reduce_ import scatter_reduce_
 from flag_gems.ops.select_backward import select_backward
 from flag_gems.ops.select_scatter import select_scatter
 from flag_gems.ops.selu import selu
@@ -287,7 +300,12 @@ from flag_gems.ops.sinh_ import sinh_
 from flag_gems.ops.slice_backward import slice_backward
 from flag_gems.ops.slice_scatter import slice_scatter
 from flag_gems.ops.soft_margin_loss import soft_margin_loss, soft_margin_loss_out
-from flag_gems.ops.softmax import softmax, softmax_backward
+from flag_gems.ops.softmax import (
+    softmax,
+    softmax_backward,
+    softmax_backward_out,
+    softmax_out,
+)
 from flag_gems.ops.softplus import softplus
 from flag_gems.ops.softshrink import softshrink, softshrink_out
 from flag_gems.ops.sort import sort, sort_stable
@@ -307,7 +325,7 @@ from flag_gems.ops.tile import tile
 from flag_gems.ops.to import to_copy
 from flag_gems.ops.topk import topk
 from flag_gems.ops.trace import trace
-from flag_gems.ops.tril import tril, tril_out
+from flag_gems.ops.tril import tril, tril_, tril_out
 from flag_gems.ops.triu import triu, triu_
 from flag_gems.ops.unfold_backward import unfold_backward
 from flag_gems.ops.uniform import uniform_
@@ -359,8 +377,12 @@ __all__ = [
     "add",
     "add_",
     "addcdiv",
+    "addcdiv_out",
     "addcmul",
+    "addcmul_out",
     "addmm",
+    "addmm_dtype",
+    "addmm_dtype_out",
     "addmm_out",
     "addmv",
     "addmv_out",
@@ -394,10 +416,14 @@ __all__ = [
     "atan2_out",
     "avg_pool2d",
     "avg_pool2d_backward",
+    "avg_pool3d",
+    "avg_pool3d_backward",
     "baddbmm",
+    "baddbmm_out",
     "batch_norm",
     "batch_norm_backward",
     "bernoulli_",
+    "bincount",
     "bitwise_and_scalar",
     "bitwise_and_scalar_",
     "bitwise_and_scalar_tensor",
@@ -415,6 +441,7 @@ __all__ = [
     "bmm",
     "bmm_out",
     "cat",
+    "cat_out",
     "ceil",
     "ceil_",
     "ceil_out",
@@ -428,6 +455,7 @@ __all__ = [
     "clamp_tensor_",
     "clip",
     "clip_",
+    "concatenate",
     "constant_pad_nd",
     "contiguous",
     "conv1d",
@@ -458,6 +486,7 @@ __all__ = [
     "dot",
     "dropout",
     "dropout_backward",
+    "einsum",
     "elu",
     "elu_",
     "elu_backward",
@@ -480,6 +509,8 @@ __all__ = [
     "exponential_",
     "eye",
     "eye_m",
+    "feature_dropout",
+    "feature_dropout_",
     "fill_scalar",
     "fill_scalar_",
     "fill_scalar_out",
@@ -510,6 +541,7 @@ __all__ = [
     "get_scheduler_metadata",
     "glu",
     "glu_backward",
+    "grid_sample",
     "greater",
     "greater_out",
     "greater_scalar",
@@ -564,6 +596,8 @@ __all__ = [
     "log_sigmoid",
     "log_softmax",
     "log_softmax_backward",
+    "log_softmax_backward_out",
+    "log_softmax_out",
     "log1p_",
     "logaddexp",
     "logaddexp_out",
@@ -675,6 +709,8 @@ __all__ = [
     "rrelu_with_noise_backward",
     "rsqrt",
     "rsqrt_",
+    "rsub_scalar",
+    "rsub_tensor",
     "scaled_dot_product_attention",
     "scaled_dot_product_attention_backward",
     "scaled_dot_product_attention_forward",
@@ -683,6 +719,7 @@ __all__ = [
     "scatter",
     "scatter_",
     "scatter_add_",
+    "scatter_reduce_",
     "select_backward",
     "select_scatter",
     "selu",
@@ -705,6 +742,8 @@ __all__ = [
     "soft_margin_loss_out",
     "softmax",
     "softmax_backward",
+    "softmax_backward_out",
+    "softmax_out",
     "softplus",
     "softshrink",
     "softshrink_out",
@@ -743,6 +782,7 @@ __all__ = [
     "topk",
     "trace",
     "tril",
+    "tril_",
     "tril_out",
     "triu",
     "triu_",
