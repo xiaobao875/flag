@@ -508,6 +508,7 @@ _FULL_CONFIG = (
     ("zero.out", zero_out),
     ("zeros", zeros),
     ("zeros_like", zeros_like),
+    ("svd", svd),
 )
 
 # Cache mapping from function name -> list of _FULL_CONFIG entries for quick lookup
