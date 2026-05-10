@@ -19,33 +19,27 @@ def count_nonzero_kernel_1(x_ptr, out_ptr, numel, BLOCK_SIZE: tl.constexpr):
     offsets = block_start + tl.arange(0, BLOCK_SIZE)
     mask = offsets < numel
     x = tl.load(x_ptr + offsets, mask=mask, other=0)
-    is_nonzero = (x != 0).to(tl.int32)
+    is_nonzero = (x != 0).to(tl.int64)
     nonzero_count = tl.sum(is_nonzero, axis=0)
-    tl.atomic_add(out_ptr, nonzero_count)
+    tl.store(out_ptr + pid, nonzero_count)
 
 
 @libentry()
 @triton.autotune(configs=runtime.get_tuned_config("count_nonzero"), key=["numel"])
 @triton.jit
 def count_nonzero_kernel(x_ptr, out_ptr, N, numel, BLOCK_SIZE: tl.constexpr):
-    n_workers = tle.num_programs(0)
-    pid = tle.program_id(0)
+    pid_x = tle.program_id(0)
 
-    n_tasks = tl.cdiv(numel, N)
-    tasks_per_worker = tl.cdiv(n_tasks, n_workers)
+    nonzero_count = tl.full((), value=0, dtype=out_ptr.dtype.element_ty)
+    for start_n in range(0, N, BLOCK_SIZE):
+        cols_offsets = start_n + tl.arange(0, BLOCK_SIZE)
+        offset = pid_x * N + cols_offsets
+        mask = offset < numel and cols_offsets < N
+        x = tl.load(x_ptr + offset, mask=mask, other=0)
+        is_nonzero = (x != 0).to(tl.int64)
+        nonzero_count += tl.sum(is_nonzero)
 
-    for task_index in range(tasks_per_worker):
-        task_id = pid + task_index * n_workers
-        nonzero_count = tl.full((), value=0, dtype=out_ptr.dtype.element_ty)
-        for start_n in range(0, N, BLOCK_SIZE):
-            cols_offsets = start_n + tl.arange(0, BLOCK_SIZE)
-            offset = task_id * N + cols_offsets
-            mask = offset < numel and cols_offsets < N
-            x = tl.load(x_ptr + offset, mask=mask, other=0)
-            is_nonzero = (x != 0).to(tl.int64)
-            nonzero_count += tl.sum(is_nonzero)
-
-        tl.store(out_ptr + task_id, nonzero_count)
+    tl.store(out_ptr + pid_x, nonzero_count)
 
 
 @libentry()
@@ -84,7 +78,7 @@ def count_nonzero(x, dim=None):
     if dim is not None:
         assert dim >= -x.ndim and dim < x.ndim, "Invalid dim"
         shape = x.shape
-        BLOCK_SIZE = 8192
+        BLOCK_SIZE = 2048
         numel = x.numel()
         x = dim_compress(x, dim)
         x = x.contiguous().flatten()
@@ -108,23 +102,19 @@ def count_nonzero(x, dim=None):
         out_shape = list(shape)
         del out_shape[dim]
         out = torch.zeros(out_shape, dtype=torch.int64, device=x.device)
-
-        def grid(meta):
-            axis0 = triton.cdiv(numel, shape[dim])
-            axis0 = axis0 if axis0 < 240 else 240
-            return (axis0,)
-
+        grid = lambda meta: (triton.cdiv(numel, shape[dim]),)
         count_nonzero_kernel[grid](x, out, shape[dim], numel)
         return out
     else:
         x = x.contiguous().flatten()
         numel = x.numel()
 
-        out = torch.zeros(1, dtype=torch.int32, device=x.device)
+        BLOCK_SIZE = 1024
+        n_blocks = triton.cdiv(numel, BLOCK_SIZE)
+        block_counts = torch.zeros(n_blocks, dtype=torch.int64, device=x.device)
 
-        BLOCK_SIZE = 8192
-        grid = lambda meta: (triton.cdiv(numel, meta["BLOCK_SIZE"]),)
+        count_nonzero_kernel_1[(n_blocks,)](
+            x, block_counts, numel, BLOCK_SIZE=BLOCK_SIZE
+        )
 
-        count_nonzero_kernel_1[grid](x, out, numel, BLOCK_SIZE=BLOCK_SIZE)
-
-        return out[0].to(torch.int64)
+        return block_counts.sum()
